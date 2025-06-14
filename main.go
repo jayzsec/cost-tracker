@@ -25,9 +25,15 @@ const (
 
 var logger *zap.SugaredLogger
 
+// CostExplorerAPI defines the interface for AWS Cost Explorer client methods used by CostTracker.
+// This allows for mocking in tests.
+type CostExplorerAPI interface {
+	GetCostAndUsage(ctx context.Context, params *costexplorer.GetCostAndUsageInput, optFns ...func(*costexplorer.Options)) (*costexplorer.GetCostAndUsageOutput, error)
+}
+
 // CostTracker holds the AWS Cost Explorer client.
 type CostTracker struct {
-	client *costexplorer.Client
+	client CostExplorerAPI
 }
 
 // NewCostTracker initializes a new CostTracker with the default AWS configuration.

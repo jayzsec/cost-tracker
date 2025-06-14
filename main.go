@@ -5,16 +5,13 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"os"
-	"strconv" // For converting string to int
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/costexplorer"
 	"github.com/aws/aws-sdk-go-v2/service/costexplorer/types"
-	// Consider using a CLI library like 'cobra' or 'flag' for robust argument parsing
-	// "github.com/spf13/cobra" // Example for a more professional setup
+	"github.com/spf13/cobra"
 )
 
 const (
@@ -150,38 +147,49 @@ func displayCosts(costs []CostByTime, days int) {
 	}
 }
 
-func main() {
-	// Use a background context for the main application lifecycle
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute) // Example: 5-minute timeout
-	defer cancel()                                                          // Ensure the context is cancelled when main exits
+var rootCmd = &cobra.Command{
+	Use:   "cost-tracker",
+	Short: "A CLI tool to track AWS costs.",
+	Long:  `cost-tracker is a CLI tool that fetches and displays AWS cost and usage data grouped by service.`,
+}
 
-	// Create cost tracker
-	tracker, err := NewCostTracker(ctx)
-	if err != nil {
-		log.Fatalf("Failed to create cost tracker: %v", err)
-	}
-
-	days := DefaultDays // Default number of days
-	if len(os.Args) > 1 {
-		// Basic argument parsing. For production, use a library like Cobra.
-		daysStr := os.Args[1]
-		parsedDays, err := strconv.Atoi(daysStr)
+var getCostsCmd = &cobra.Command{
+	Use:   "get",
+	Short: "Get AWS costs for a specified number of days.",
+	Long:  `Retrieves and displays AWS costs from Cost Explorer for the last N days, grouped by service.`,
+	Run: func(cmd *cobra.Command, args []string) {
+		days, err := cmd.Flags().GetInt("days")
 		if err != nil {
-			log.Printf("Warning: Invalid number of days provided '%s'. Using default %d days. Error: %v\n", daysStr, DefaultDays, err)
-			// No fatal here, allow to proceed with default
-		} else {
-			days = parsedDays
+			log.Fatalf("Error getting 'days' flag: %v", err)
 		}
-	} else {
-		fmt.Printf("No number of days provided. Using default: %d days.\n", DefaultDays)
-		fmt.Println("Usage: ./cost-tracker [number_of_days]")
-	}
 
-	// Get costs
-	costs, err := tracker.GetCostsByService(ctx, days)
-	if err != nil {
-		log.Fatalf("Error getting costs: %v", err)
+		// Use a background context for the main application lifecycle
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute) // Example: 5-minute timeout
+		defer cancel()                                                          // Ensure the context is cancelled when main exits
+
+		// Create cost tracker
+		tracker, err := NewCostTracker(ctx)
+		if err != nil {
+			log.Fatalf("Failed to create cost tracker: %v", err)
+		}
+
+		// Get costs
+		costs, err := tracker.GetCostsByService(ctx, days)
+		if err != nil {
+			log.Fatalf("Error getting costs: %v", err)
+		}
+		// Display costs
+		displayCosts(costs, days)
+	},
+}
+
+func init() {
+	rootCmd.AddCommand(getCostsCmd)
+	getCostsCmd.Flags().IntP("days", "d", DefaultDays, "Number of days to look back for cost data")
+}
+
+func main() {
+	if err := rootCmd.Execute(); err != nil {
+		log.Fatalf("Error executing root command: %v", err)
 	}
-	// Display costs
-	displayCosts(costs, days)
 }

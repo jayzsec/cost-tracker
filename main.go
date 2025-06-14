@@ -4,7 +4,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"log"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -12,6 +11,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/costexplorer"
 	"github.com/aws/aws-sdk-go-v2/service/costexplorer/types"
 	"github.com/spf13/cobra"
+	"go.uber.org/zap"
 )
 
 const (
@@ -22,6 +22,8 @@ const (
 	GroupByServiceKey    = "SERVICE"                          // Key for grouping by service
 	DefaultDays          = 30                                 // Default number of days to look back for cost data
 )
+
+var logger *zap.SugaredLogger
 
 // CostTracker holds the AWS Cost Explorer client.
 type CostTracker struct {
@@ -108,8 +110,11 @@ func (ct *CostTracker) GetCostsByService(ctx context.Context, days int) ([]CostB
 			// Safely access the metrics
 			metric, ok := group.Metrics[MetricBlendedCost]
 			if !ok || metric.Amount == nil || metric.Unit == nil {
-				log.Printf("Warning: Metric '%s' not found or incomplete for service '%s' in period %s-%s",
-					MetricBlendedCost, serviceName, periodCosts.Start, periodCosts.End)
+				logger.Warnw("Metric not found or incomplete for service",
+					"metric", MetricBlendedCost,
+					"service", serviceName,
+					"periodStart", periodCosts.Start,
+					"periodEnd", periodCosts.End)
 				continue // Skip if metric is missing or incomplete
 			}
 
@@ -160,7 +165,7 @@ var getCostsCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		days, err := cmd.Flags().GetInt("days")
 		if err != nil {
-			log.Fatalf("Error getting 'days' flag: %v", err)
+			logger.Fatalw("Error getting 'days' flag", "error", err)
 		}
 
 		// Use a background context for the main application lifecycle
@@ -170,13 +175,13 @@ var getCostsCmd = &cobra.Command{
 		// Create cost tracker
 		tracker, err := NewCostTracker(ctx)
 		if err != nil {
-			log.Fatalf("Failed to create cost tracker: %v", err)
+			logger.Fatalw("Failed to create cost tracker", "error", err)
 		}
 
 		// Get costs
 		costs, err := tracker.GetCostsByService(ctx, days)
 		if err != nil {
-			log.Fatalf("Error getting costs: %v", err)
+			logger.Fatalw("Error getting costs", "error", err)
 		}
 		// Display costs
 		displayCosts(costs, days)
@@ -184,12 +189,22 @@ var getCostsCmd = &cobra.Command{
 }
 
 func init() {
+	// Initialize zap logger
+	rawLogger, err := zap.NewProduction() // Or zap.NewDevelopment() for more verbose, human-readable logs
+	if err != nil {
+		// Fallback to standard log if zap initialization fails
+		fmt.Printf("failed to initialize zap logger: %v\n", err) // Use fmt here as logger isn't initialized
+		panic(err)                                               // or os.Exit(1)
+	}
+	logger = rawLogger.Sugar()
+
 	rootCmd.AddCommand(getCostsCmd)
 	getCostsCmd.Flags().IntP("days", "d", DefaultDays, "Number of days to look back for cost data")
 }
 
 func main() {
+	defer logger.Sync() // Flushes any buffered log entries
 	if err := rootCmd.Execute(); err != nil {
-		log.Fatalf("Error executing root command: %v", err)
+		logger.Fatalw("Error executing root command", "error", err)
 	}
 }

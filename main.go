@@ -4,12 +4,14 @@ package main
 import (
 	"context"
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/costexplorer"
 	"github.com/aws/aws-sdk-go-v2/service/costexplorer/types"
+	"github.com/slack-go/slack"
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
 )
@@ -158,6 +160,28 @@ func displayCosts(costs []CostByTime, days int) {
 	}
 }
 
+// sendSlackNotification sends a message to a configured Slack webhook URL.
+// It reads the SLACK_WEBHOOK_URL environment variable.
+func sendSlackNotification(message string) {
+	webhookURL := os.Getenv("SLACK_WEBHOOK_URL")
+	if webhookURL == "" {
+		logger.Info("SLACK_WEBHOOK_URL not set. Skipping Slack notification.")
+		return
+	}
+
+	msg := slack.WebhookMessage{
+		Text: message,
+	}
+
+	err := slack.PostWebhook(webhookURL, &msg)
+	if err != nil {
+		logger.Errorw("Failed to send Slack notification", "error", err)
+		return
+	}
+
+	logger.Info("Successfully sent Slack notification.")
+}
+
 var rootCmd = &cobra.Command{
 	Use:   "cost-tracker",
 	Short: "A CLI tool to track AWS costs.",
@@ -171,6 +195,8 @@ var getCostsCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		days, err := cmd.Flags().GetInt("days")
 		if err != nil {
+			errMsg := fmt.Sprintf("Error getting 'days' flag: %v", err)
+			sendSlackNotification("Cost Tracker Error: " + errMsg)
 			logger.Fatalw("Error getting 'days' flag", "error", err)
 		}
 
@@ -181,16 +207,27 @@ var getCostsCmd = &cobra.Command{
 		// Create cost tracker
 		tracker, err := NewCostTracker(ctx)
 		if err != nil {
+			errMsg := fmt.Sprintf("Failed to create cost tracker: %v", err)
+			sendSlackNotification("Cost Tracker Error: " + errMsg)
 			logger.Fatalw("Failed to create cost tracker", "error", err)
 		}
 
 		// Get costs
 		costs, err := tracker.GetCostsByService(ctx, days)
 		if err != nil {
+			errMsg := fmt.Sprintf("Error getting costs: %v", err)
+			sendSlackNotification("Cost Tracker Error: " + errMsg)
 			logger.Fatalw("Error getting costs", "error", err)
 		}
 		// Display costs
+		logger.Info("Displaying costs to console.")
 		displayCosts(costs, days)
+
+		// Send Slack notification
+		slackMessage := fmt.Sprintf("Successfully fetched AWS costs for the last %d days.", days)
+		// You could enhance this message with a summary of costs if desired.
+		// For example, by modifying displayCosts to return a string or by re-processing `costs` here.
+		sendSlackNotification(slackMessage)
 	},
 }
 
@@ -211,6 +248,8 @@ func init() {
 func main() {
 	defer logger.Sync() // Flushes any buffered log entries
 	if err := rootCmd.Execute(); err != nil {
+		errMsg := fmt.Sprintf("Error executing root command: %v", err)
+		sendSlackNotification("Cost Tracker Critical Error: " + errMsg)
 		logger.Fatalw("Error executing root command", "error", err)
 	}
 }

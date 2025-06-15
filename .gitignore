@@ -1,3 +1,9 @@
+// macos file 
 .DS_Store
+
+// environment variables
+.env
+
+// binary files
 cost-tracker
-bin/
+bin/*

@@ -56,5 +56,5 @@ A Go-based tool to track and analyze AWS costs.
 - [ ] Add filtering by date range
 - [ ] Add cost threshold alerts
 - [ ] Export to JSON/CSV
-- [ ] Add Slack notifications
+- [/] Add Slack notifications
 - [ ] Containerize for Kubernetes deployment

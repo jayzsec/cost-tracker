@@ -4,7 +4,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"os"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -13,6 +12,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/costexplorer/types"
 	"github.com/slack-go/slack"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 	"go.uber.org/zap"
 )
 
@@ -163,9 +163,9 @@ func displayCosts(costs []CostByTime, days int) {
 // sendSlackNotification sends a message to a configured Slack webhook URL.
 // It reads the SLACK_WEBHOOK_URL environment variable.
 func sendSlackNotification(message string) {
-	webhookURL := os.Getenv("SLACK_WEBHOOK_URL")
+	webhookURL := viper.GetString("slack.webhook_url") // Read from Viper
 	if webhookURL == "" {
-		logger.Info("SLACK_WEBHOOK_URL not set. Skipping Slack notification.")
+		logger.Info("Slack webhook URL not configured. Skipping Slack notification. Set COSTTRACKER_SLACK_WEBHOOK_URL or configure in cost-tracker-config.yaml.")
 		return
 	}
 
@@ -193,12 +193,7 @@ var getCostsCmd = &cobra.Command{
 	Short: "Get AWS costs for a specified number of days.",
 	Long:  `Retrieves and displays AWS costs from Cost Explorer for the last N days, grouped by service.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		days, err := cmd.Flags().GetInt("days")
-		if err != nil {
-			errMsg := fmt.Sprintf("Error getting 'days' flag: %v", err)
-			sendSlackNotification("Cost Tracker Error: " + errMsg)
-			logger.Fatalw("Error getting 'days' flag", "error", err)
-		}
+		days := viper.GetInt("days") // Viper now holds the value for 'days'
 
 		// Use a background context for the main application lifecycle
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute) // Example: 5-minute timeout
@@ -241,8 +236,41 @@ func init() {
 	}
 	logger = rawLogger.Sugar()
 
+	// Initialize Viper configuration
+	viper.SetDefault("days", DefaultDays)     // Set default value for 'days'
+	viper.SetDefault("slack.webhook_url", "") // Set default for Slack webhook URL (empty means disabled)
+
+	// Configure Viper to read from environment variables
+	// It will look for variables like COSTTRACKER_DAYS and COSTTRACKER_SLACK_WEBHOOK_URL
+	viper.SetEnvPrefix("COSTTRACKER")
+	viper.AutomaticEnv()
+
+	// Configure Viper to read from a configuration file (optional)
+	viper.SetConfigName("cost-tracker-config") // Name of config file (e.g., cost-tracker-config.yaml)
+	viper.SetConfigType("json")                // Can be yaml, json, toml, etc.
+	viper.AddConfigPath(".")                   // Look for config in the current directory
+	viper.AddConfigPath("$HOME/.cost-tracker") // And in the user's home .cost-tracker directory
+	if err := viper.ReadInConfig(); err != nil {
+		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
+			// Config file not found; this is not an error, just a warning
+			logger.Info("No configuration file found. Using defaults, environment variables, and command-line flags.")
+		} else {
+			// Config file was found but another error occurred
+			logger.Warnw("Error reading configuration file", "error", err)
+		}
+	}
+
 	rootCmd.AddCommand(getCostsCmd)
+	// Define the 'days' flag using Cobra
 	getCostsCmd.Flags().IntP("days", "d", DefaultDays, "Number of days to look back for cost data")
+
+	// Bind the Cobra 'days' flag to Viper.
+	// This means Viper will respect the flag if set, then environment variables,
+	// then config file values, and finally its own defaults.
+	if err := viper.BindPFlag("days", getCostsCmd.Flags().Lookup("days")); err != nil {
+		// This panic is for a programming error (e.g., flag "days" not found), should not happen in normal operation.
+		logger.Panicw("Failed to bind 'days' flag to viper configuration", "error", err)
+	}
 }
 
 func main() {

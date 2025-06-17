@@ -1,7 +1,7 @@
 # Stage 1: The build environment
 # We use the official Golang image, which contains all the necessary tools to build our app.
 # Using '-alpine' keeps the build environment itself smaller.
-FROM golang:1.21-alpine AS builder
+FROM golang:1.22-alpine AS builder
 
 # Set the working directory inside the container.
 WORKDIR /app

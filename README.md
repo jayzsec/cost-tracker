@@ -4,11 +4,11 @@ A Go-based tool to track and analyze AWS costs.
 
 ## Setup
 
-1. Ensure you have Go 1.21+ installed
+1. Ensure you have Go 1.22 or higher installed
 2. Configure AWS credentials (via AWS CLI, environment variables, or IAM role (IAM user with Cost Explorer permissions))
 3. Install dependencies:
 ```bash
-    go mod tidy
+  go mod tidy
 ```
 
 ## Configuration
@@ -55,8 +55,8 @@ The application uses [Viper](https://github.com/spf13/viper) for configuration m
 ## Usage
 
 ```bash
-    go build -o cost-tracker
-    ./cost-tracker get --days 7
+  go build -o cost-tracker
+  ./cost-tracker get --days 7
 ```
 
 - The `--days` flag is optional (default: 30).

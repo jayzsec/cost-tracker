@@ -7,3 +7,6 @@
 // binary files
 cost-tracker
 bin/*
+
+// notes
+notes/*.md

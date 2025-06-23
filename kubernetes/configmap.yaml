@@ -1,0 +1,12 @@
+# kubernetes/configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cost-tracker-config
+  # It's good practice to label your resources
+  labels:
+    app: cost-tracker
+data:
+  # Viper will read this as COSTTRACKER_DAYS
+  # The key is the environment variable name, and the value is its setting.
+  COSTTRACKER_DAYS: "30"

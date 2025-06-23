@@ -10,3 +10,9 @@ bin/*
 
 // notes
 notes/*.md
+
+// kubernetes
+kubernetes/secret.yaml
+
+// shell scripts
+scripts/*.sh

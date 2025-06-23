@@ -12,6 +12,9 @@ jobs:
     name: Build and Test
     # Use the latest version of Ubuntu to run the job
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
     steps:
       # Step 1: Check out the repository code
       - name: Checkout code

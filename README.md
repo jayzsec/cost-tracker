@@ -76,8 +76,8 @@ The application uses [Viper](https://github.com/spf13/viper) for configuration m
 - [x] Structured Logging: Instead of log.Printf and log.Fatalf, consider a structured logger like **zap** or **logrus** for better observability in production.
 - [x] Configuration Management: For more complex settings (e.g., AWS region, different metrics/granularities, output formats), use a configuration library (**viper** is popular) or environment variables.
 - [x] Testing: Implement unit tests for NewCostTracker and GetCostsByService by mocking the costexplorer.Client.
-- [] Monetary Formatting: For displaying currency, converting the Amount string to a numerical type (like float64 or decimal.Decimal from shopspring/decimal) and then formatting it correctly is best practice.
-- [] Error Handling Strategy: For production systems, you might have a more sophisticated error handling strategy (e.g., custom error types, centralized error logging).
+- [ ] Monetary Formatting: For displaying currency, converting the Amount string to a numerical type (like float64 or decimal.Decimal from shopspring/decimal) and then formatting it correctly is best practice.
+- [ ] Error Handling Strategy: For production systems, you might have a more sophisticated error handling strategy (e.g., custom error types, centralized error logging).
 
 ## Next Steps
 

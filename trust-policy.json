@@ -1,0 +1,17 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": {
+        "Federated": "arn:aws:iam::051826710781:oidc-provider/oidc.eks.ap-southeast-2.amazonaws.com/id/B37D4020F87263B3213AEDD52EC837FC"
+      },
+      "Action": "sts:AssumeRoleWithWebIdentity",
+      "Condition": {
+        "StringEquals": {
+          "oidc.eks.ap-southeast-2.amazonaws.com/id/B37D4020F87263B3213AEDD52EC837FC:sub": "system:serviceaccount:default:cost-tracker-sa1"
+        }
+      }
+    }
+  ]
+}

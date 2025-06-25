@@ -1,35 +1,21 @@
-# kubernetes/cronjob.yaml
 apiVersion: batch/v1
 kind: CronJob
 metadata:
   name: cost-tracker-cronjob
-  labels:
-    app: cost-tracker
 spec:
-  # Cron schedule format: "Minute Hour Day-of-Month Month Day-of-Week"
-  # This schedule runs at 2:00 AM UTC every day.
   schedule: "0 2 * * *"
-  # The job template defines the pod that will be run.
   jobTemplate:
     spec:
-      # This ensures that if a job fails, it won't be retried.
-      # For a daily cost report, you might not want retries.
       backoffLimit: 1
       template:
-        metadata:
-          labels:
-            app: cost-tracker
         spec:
+          serviceAccountName: cost-tracker-sa
           containers:
           - name: cost-tracker
-            # IMPORTANT: Replace this with the actual path to your container image in GHCR.
             image: ghcr.io/jayzsec/cost-tracker:latest
-            # This loads all key-value pairs from our ConfigMap as environment variables.
             envFrom:
             - configMapRef:
                 name: cost-tracker-config
-            # This loads all key-value pairs from our Secret as environment variables.
             - secretRef:
                 name: cost-tracker-secret
-          # A 'RestartPolicy' of 'Never' or 'OnFailure' is required for Jobs.
           restartPolicy: OnFailure

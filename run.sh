@@ -21,12 +21,12 @@
 set -euo pipefail
 
 # User-configurable variables
-CLUSTER_NAME="cost-tracker-cluster1"
+CLUSTER_NAME="cost-tracker-cluster"
 CLUSTER_REGION="ap-southeast-2"
 K8S_NAMESPACE="default" # Define namespace for clarity
-K8S_SERVICE_ACCOUNT_NAME="cost-tracker-sa1"
-IAM_POLICY_NAME="CostTrackerPolicy1"
-IAM_ROLE_NAME="CostTrackerRole1"
+K8S_SERVICE_ACCOUNT_NAME="cost-tracker-sa"
+IAM_POLICY_NAME="CostTrackerPolicy"
+IAM_ROLE_NAME="CostTrackerRole"
 AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query "Account" --output text)
 
 # --- Functions for printing pretty output ---

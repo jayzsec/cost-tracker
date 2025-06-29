@@ -89,7 +89,7 @@ The application can be configured in the following ways (in order of precedence)
 {
   "days": 15,
   "slack": {
-    "webhook_url": "[https://hooks.slack.com/services/your/webhook/url](https://hooks.slack.com/services/your/webhook/url)"
+    "webhook_url": "https://hooks.slack.com/services/your/webhook/url"
   }
 }
 ```
